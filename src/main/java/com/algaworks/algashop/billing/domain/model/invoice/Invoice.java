@@ -1,23 +1,25 @@
 package com.algaworks.algashop.billing.domain.model.invoice;
 
+import com.algaworks.algashop.billing.domain.model.AbstractAuditableAggregateRoot;
 import com.algaworks.algashop.billing.domain.model.DomainException;
 import com.algaworks.algashop.billing.domain.model.IdGenerator;
-import jakarta.persistence.Access;
+import jakarta.persistence.*;
 import lombok.*;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.sound.sampled.Line;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.*;
 
 @Getter
 @Setter(AccessLevel.PRIVATE)
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-public class Invoice {
+@Entity
+public class Invoice extends AbstractAuditableAggregateRoot<Invoice> {
 
+    @Id
     @EqualsAndHashCode.Include
     private UUID id;
     private String orderId;
@@ -30,12 +32,17 @@ public class Invoice {
 
     private BigDecimal totalAmount;
 
+    @Enumerated(EnumType.STRING)
     private InvoiceStatus status;
 
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     private PaymentSettings paymentSettings;
 
+    @ElementCollection
+    @CollectionTable(name = "invoice_line_item", joinColumns = @JoinColumn(name = "invoice_id"))
     private Set<LineItem> items = new HashSet<>();
 
+    @Embedded
     private Payer payer;
 
     private String cancelReason;
@@ -56,7 +63,7 @@ public class Invoice {
 
         BigDecimal totalAmount = items.stream().map(LineItem::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return new Invoice(
+        Invoice invoice = new Invoice(
                 IdGenerator.generateTimeBasedUUID(),
                 orderId,
                 customerId,
@@ -71,6 +78,10 @@ public class Invoice {
                 payer,
                 null
         );
+
+        invoice.registerEvent(new InvoiceIssuedEvent(invoice.getId(),
+                invoice.getCustomerId(), invoice.getOrderId(), invoice.getIssuedAt()));
+        return invoice;
     }
 
     public Set<LineItem> getItems() {
@@ -96,6 +107,7 @@ public class Invoice {
         }
         setPaidAt(OffsetDateTime.now());
         setStatus(InvoiceStatus.PAID);
+        registerEvent(new InvoicePaidEvent(this.getId(), this.getCustomerId(), this.getOrderId(), this.getPaidAt()));
     }
 
     public void cancel(String cancelReason) {
@@ -105,6 +117,7 @@ public class Invoice {
         setCancelReason(cancelReason);
         setCanceledAt(OffsetDateTime.now());
         setStatus(InvoiceStatus.CANCELED);
+        registerEvent(new InvoiceCanceledEvent(this.getId(), this.getCustomerId(), this.getOrderId(), this.getCanceledAt()));
     }
 
     public void assignPaymentGatewayCode(String code) {
@@ -121,6 +134,7 @@ public class Invoice {
                     this.getId(), this.getStatus().toString().toLowerCase()));
         }
         PaymentSettings paymentSettings = PaymentSettings.brandNew(method, creditCardId);
+        paymentSettings.setInvoice(this);
         this.setPaymentSettings(paymentSettings);
     }
 }
