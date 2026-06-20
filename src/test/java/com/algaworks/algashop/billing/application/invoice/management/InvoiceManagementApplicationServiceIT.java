@@ -1,5 +1,6 @@
 package com.algaworks.algashop.billing.application.invoice.management;
 
+import com.algaworks.algashop.billing.application.invoice.AbstractApplicationIT;
 import com.algaworks.algashop.billing.domain.model.creditcard.CreditCard;
 import com.algaworks.algashop.billing.domain.model.creditcard.CreditCardRepository;
 import com.algaworks.algashop.billing.domain.model.creditcard.CreditCardTestDataBuilder;
@@ -22,9 +23,9 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 
-@SpringBootTest
-@Transactional
-class InvoiceManagementApplicationServiceIT {
+//@SpringBootTest
+//@Transactional
+class InvoiceManagementApplicationServiceIT extends AbstractApplicationIT {
 
     @Autowired
     private InvoiceManagementApplicationService applicationService;
