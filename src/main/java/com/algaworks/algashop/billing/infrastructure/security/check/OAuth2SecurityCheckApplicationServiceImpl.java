@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
-@Service("securityCheck")
+@Service("securityChecks")
 @Slf4j
 public class OAuth2SecurityCheckApplicationServiceImpl implements SecurityCheckApplicationService {
 
