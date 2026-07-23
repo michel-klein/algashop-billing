@@ -27,7 +27,6 @@ public class CreditCard {
     private String brand;
     private Integer expMonth;
     private Integer expYear;
-
     private String gatewayCode;
 
     public static CreditCard brandNew(UUID customerId,

@@ -1,7 +1,5 @@
 package com.algaworks.algashop.billing.application.invoice.management;
 
-import com.algaworks.algashop.billing.domain.model.DomainException;
-import com.algaworks.algashop.billing.domain.model.creditcard.CreditCard;
 import com.algaworks.algashop.billing.domain.model.creditcard.CreditCardNotFoundException;
 import com.algaworks.algashop.billing.domain.model.creditcard.CreditCardRepository;
 import com.algaworks.algashop.billing.domain.model.invoice.*;
@@ -9,6 +7,7 @@ import com.algaworks.algashop.billing.domain.model.invoice.payment.Payment;
 import com.algaworks.algashop.billing.domain.model.invoice.payment.PaymentGatewayService;
 import com.algaworks.algashop.billing.domain.model.invoice.payment.PaymentRequest;
 import com.algaworks.algashop.billing.domain.model.invoice.payment.PaymentStatus;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -47,9 +46,17 @@ public class InvoiceManagementApplicationService {
         return invoice.getId();
     }
 
+    private void verifyCreditCard(GenerateInvoiceInput input) {
+        UUID creditCardId = input.getPaymentSettings().getCreditCardId();
+        UUID customerId = input.getCustomerId();
+        if (!creditCardRepository.existsByIdAndCustomerId(creditCardId, customerId)) {
+            throw new CreditCardNotFoundException(String.format("Credit card %s not found exception", creditCardId));
+        }
+    }
+
     @Transactional
     public void processPayment(UUID invoiceId) {
-        Invoice invoice = invoiceRepository.findById(invoiceId).orElseThrow(InvoiceNotFoundException::new);
+        Invoice invoice = invoiceRepository.findById(invoiceId).orElseThrow(() -> new InvoiceNotFoundException());
         PaymentRequest paymentRequest = toPaymentRequest(invoice);
 
         Payment payment;
@@ -118,11 +125,4 @@ public class InvoiceManagementApplicationService {
                 .build();
     }
 
-    private void verifyCreditCard(GenerateInvoiceInput input) {
-        UUID creditCardId = input.getPaymentSettings().getCreditCardId();
-        UUID customerId = input.getCustomerId();
-        if (!creditCardRepository.existsByIdAndCustomerId(creditCardId, customerId)) {
-            throw new CreditCardNotFoundException(String.format("Credit card %s not found exception", creditCardId));
-        }
-    }
 }

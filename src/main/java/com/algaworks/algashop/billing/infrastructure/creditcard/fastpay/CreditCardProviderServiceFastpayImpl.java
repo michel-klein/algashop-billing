@@ -14,33 +14,25 @@ import java.util.UUID;
 @ConditionalOnProperty(name = "algashop.integrations.payment.provider", havingValue = "FASTPAY")
 @RequiredArgsConstructor
 public class CreditCardProviderServiceFastpayImpl implements CreditCardProviderService {
-    private final FastpayCreditCardAPIClient apiClient;
+
+    private final FastpayCreditCardAPIClient fastpayCreditCardAPIClient;
 
     @Override
     public LimitedCreditCard register(UUID customerId, String tokenizedCard) {
-        FastpayCreditCardInput creditCardInput = FastpayCreditCardInput.builder()
+        FastpayCreditCardInput input = FastpayCreditCardInput.builder()
                 .tokenizedCard(tokenizedCard)
                 .customerCode(customerId.toString())
                 .build();
-        FastpayCreditCardResponse response = apiClient.create(creditCardInput);
-        return toLimitedCreditCard(response);
-    }
 
-    private LimitedCreditCard toLimitedCreditCard(FastpayCreditCardResponse response) {
-        return LimitedCreditCard.builder()
-                .brand(response.getBrand())
-                .lastNumbers(response.getLastNumbers())
-                .expMonth(response.getExpMonth())
-                .expYear(response.getExpYear())
-                .gatewayCode(response.getId())
-                .build();
+        FastpayCreditCardResponse response = fastpayCreditCardAPIClient.create(input);
+        return toLimitedCreditCard(response);
     }
 
     @Override
     public Optional<LimitedCreditCard> findById(String gatewayCode) {
         FastpayCreditCardResponse response;
         try {
-            response = apiClient.findById(gatewayCode);
+            response = fastpayCreditCardAPIClient.findById(gatewayCode);
         } catch (HttpClientErrorException.NotFound e) {
             return Optional.empty();
         }
@@ -49,6 +41,16 @@ public class CreditCardProviderServiceFastpayImpl implements CreditCardProviderS
 
     @Override
     public void delete(String gatewayCode) {
-        apiClient.delete(gatewayCode);
+        fastpayCreditCardAPIClient.delete(gatewayCode);
+    }
+
+    private LimitedCreditCard toLimitedCreditCard(FastpayCreditCardResponse response) {
+        return LimitedCreditCard.builder()
+                .brand(response.getBrand())
+                .expYear(response.getExpYear())
+                .expMonth(response.getExpMonth())
+                .lastNumbers(response.getLastNumbers())
+                .gatewayCode(response.getId())
+                .build();
     }
 }

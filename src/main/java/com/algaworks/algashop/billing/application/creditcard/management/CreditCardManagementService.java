@@ -35,9 +35,9 @@ public class CreditCardManagementService {
     @Transactional
     public void delete(UUID customerId, UUID creditCardId) {
         CreditCard creditCard = creditCardRepository.findByCustomerIdAndId(customerId, creditCardId)
-                .orElseThrow(CreditCardNotFoundException::new);
-        creditCardProviderService.delete(creditCard.getGatewayCode());
+                .orElseThrow(() -> new CreditCardNotFoundException());
         creditCardRepository.delete(creditCard);
+        creditCardProviderService.delete(creditCard.getGatewayCode());
     }
 
 }

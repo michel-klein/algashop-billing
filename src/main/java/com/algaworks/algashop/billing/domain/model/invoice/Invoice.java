@@ -12,8 +12,8 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.*;
 
-@Getter
 @Setter(AccessLevel.PRIVATE)
+@Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
@@ -40,7 +40,8 @@ public class Invoice extends AbstractAuditableAggregateRoot<Invoice> {
     private PaymentSettings paymentSettings;
 
     @ElementCollection
-    @CollectionTable(name = "invoice_line_item", joinColumns = @JoinColumn(name = "invoice_id"))
+    @CollectionTable(name = "invoice_line_item",
+            joinColumns = @JoinColumn(name = "invoice_id"))
     private Set<LineItem> items = new HashSet<>();
 
     @Embedded
@@ -48,21 +49,24 @@ public class Invoice extends AbstractAuditableAggregateRoot<Invoice> {
 
     private String cancelReason;
 
-    public static Invoice issue(String orderId, UUID customerId, Payer payer, Set<LineItem> items) {
-
+    public static Invoice issue(String orderId,
+                                UUID customerId,
+                                Payer payer,
+                                Set<LineItem> items) {
         Objects.requireNonNull(customerId);
         Objects.requireNonNull(payer);
         Objects.requireNonNull(items);
 
         if (StringUtils.isBlank(orderId)) {
-            throw new IllegalArgumentException("Order ID must be provided");
+            throw new IllegalArgumentException();
         }
 
         if (items.isEmpty()) {
-            throw new IllegalArgumentException("At least one line item must be provided");
+            throw new IllegalArgumentException();
         }
 
-        BigDecimal totalAmount = items.stream().map(LineItem::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalAmount = items.stream().map(LineItem::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         Invoice invoice = new Invoice(
                 IdGenerator.generateTimeBasedUUID(),
@@ -79,7 +83,6 @@ public class Invoice extends AbstractAuditableAggregateRoot<Invoice> {
                 payer,
                 null
         );
-
         invoice.registerEvent(new InvoiceIssuedEvent(invoice.getId(),
                 invoice.getCustomerId(), invoice.getOrderId(), invoice.getIssuedAt()));
         return invoice;
